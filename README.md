@@ -1,7 +1,7 @@
 # Dealer Evaluation Microservices Project
 
 <div align="center">
-  <img width="85%" alt="Project Screenshot" src="https://github.com/user-attachments/assets/59694aff-d909-4b44-8c98-15eec04172d8" />
+  <img width="85%" alt="Project Screenshot" src="https://github.com/user-attachments/assets/a0a2e3ef-002a-4dd1-aa80-1be3f874a637" />
 </div>
 
 This project demonstrates a microservices architecture with three services:
@@ -124,3 +124,4 @@ Response: {
 3. View the dealers that supply the product
 4. Select a dealer to view pricing
 5. Select "All Dealers" to view all dealer prices for the product
+
