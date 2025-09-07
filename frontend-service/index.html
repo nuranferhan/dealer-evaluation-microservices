@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dealer Evaluation System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏪 Dealer Evaluation System</h1>
+            <p>Compare prices from different dealers</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <h2>Select Product</h2>
+                <select id="productSelect" class="select-box">
+                    <option value="">Loading products...</option>
+                </select>
+            </div>
+
+            <div class="card" id="dealerCard" style="display: none;">
+                <h2>Select Dealer</h2>
+                <select id="dealerSelect" class="select-box">
+                    <option value="">Select a dealer...</option>
+                </select>
+            </div>
+
+            <div class="card" id="priceCard" style="display: none;">
+                <h2>Price Information</h2>
+                <div id="priceDisplay" class="price-display">
+                    <!-- Price information will be displayed here -->
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>© 2024 Dealer Evaluation System</p>
+        </footer>
+    </div>
+
+    <script>
+        // API URLs - Replace these placeholders with actual deployment URLs
+        const PRODUCT_API_URL = 'http://localhost:5000';  // PLACEHOLDER: Replace with Product Details Service URL
+        const DEALER_API_URL = 'http://localhost:3000';   // PLACEHOLDER: Replace with Dealer Pricing Service URL
+
+        let products = [];
+        let selectedProductId = null;
+
+        // DOM Elements
+        const productSelect = document.getElementById('productSelect');
+        const dealerSelect = document.getElementById('dealerSelect');
+        const dealerCard = document.getElementById('dealerCard');
+        const priceCard = document.getElementById('priceCard');
+        const priceDisplay = document.getElementById('priceDisplay');
+
+        // Load products on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProducts();
+        });
+
+        // Load products from API
+        async function loadProducts() {
+            try {
+                const response = await fetch(`${PRODUCT_API_URL}/products`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                products = await response.json();
+                
+                productSelect.innerHTML = '<option value="">Select a product...</option>';
+                products.forEach(product => {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} - ${product.category}`;
+                    productSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading products:', error);
+                productSelect.innerHTML = '<option value="">Error loading products</option>';
+            }
+        }
+
+        // Handle product selection
+        productSelect.addEventListener('change', function() {
+            selectedProductId = this.value;
+            
+            if (selectedProductId) {
+                loadDealers(selectedProductId);
+                dealerCard.style.display = 'block';
+                priceCard.style.display = 'none';
+            } else {
+                dealerCard.style.display = 'none';
+                priceCard.style.display = 'none';
+            }
+        });
+
+        // Load dealers for selected product
+        async function loadDealers(productId) {
+            try {
+                const response = await fetch(`${DEALER_API_URL}/dealers/${productId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const dealers = await response.json();
+                
+                dealerSelect.innerHTML = '<option value="">Select a dealer...</option>';
+                dealerSelect.innerHTML += '<option value="all">All Dealers</option>';
+                
+                dealers.forEach(dealer => {
+                    const option = document.createElement('option');
+                    option.value = dealer.id;
+                    option.textContent = `${dealer.name} - ${dealer.location}`;
+                    dealerSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading dealers:', error);
+                dealerSelect.innerHTML = '<option value="">Error loading dealers</option>';
+            }
+        }
+
+        // Handle dealer selection
+        dealerSelect.addEventListener('change', function() {
+            const dealerId = this.value;
+            
+            if (dealerId && selectedProductId) {
+                if (dealerId === 'all') {
+                    loadAllPrices(selectedProductId);
+                } else {
+                    loadPrice(dealerId, selectedProductId);
+                }
+                priceCard.style.display = 'block';
+            } else {
+                priceCard.style.display = 'none';
+            }
+        });
+
+        // Load price for specific dealer and product
+        async function loadPrice(dealerId, productId) {
+            try {
+                const response = await fetch(`${DEALER_API_URL}/price/${dealerId}/${productId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const priceData = await response.json();
+                
+                priceDisplay.innerHTML = `
+                    <div class="price-item">
+                        <h3>${priceData.dealerName}</h3>
+                        <p class="location">📍 ${priceData.dealerLocation}</p>
+                        <p class="price">💰 $${priceData.price.toFixed(2)}</p>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading price:', error);
+                priceDisplay.innerHTML = '<p class="error">Error loading price information</p>';
+            }
+        }
+
+        // Load prices from all dealers for a product
+        async function loadAllPrices(productId) {
+            try {
+                const response = await fetch(`${DEALER_API_URL}/prices/${productId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const pricesData = await response.json();
+                
+                if (pricesData.length === 0) {
+                    priceDisplay.innerHTML = '<p>No dealers found for this product</p>';
+                    return;
+                }
+                
+                let html = '<div class="all-prices">';
+                html += '<h3>All Dealer Prices</h3>';
+                
+                pricesData.forEach(dealer => {
+                    html += `
+                        <div class="price-item">
+                            <div class="dealer-info">
+                                <h4>${dealer.dealerName}</h4>
+                                <p class="location">📍 ${dealer.dealerLocation}</p>
+                                <p class="rating">⭐ ${dealer.rating}/5</p>
+                            </div>
+                            <p class="price">💰 $${dealer.price.toFixed(2)}</p>
+                        </div>
+                    `;
+                });
+                
+                html += '</div>';
+                priceDisplay.innerHTML = html;
+            } catch (error) {
+                console.error('Error loading all prices:', error);
+                priceDisplay.innerHTML = '<p class="error">Error loading price information</p>';
+            }
+        }
+    </script>
+</body>
+</html>
